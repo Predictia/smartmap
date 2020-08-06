@@ -15,7 +15,7 @@
 		var ws = null;
 
 		function connect(){
-			ws = new SockJS('/lastdata');
+			ws = new SockJS('/smartmap');
 			ws.onopen = function(){
 				log('Info: WebSocket connection opened.');
 				send();
