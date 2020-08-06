@@ -20,7 +20,7 @@ class WebSocketConfig implements WebSocketConfigurer {
 	
 	@Override
 	public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-		registry.addHandler(wsHandler, "/lastdata").withSockJS();
+		registry.addHandler(wsHandler, "/smartmap").setAllowedOrigins("*").withSockJS();
 	}
 
 }
