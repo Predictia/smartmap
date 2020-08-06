@@ -1,4 +1,4 @@
-package es.predictia.smartmap.service;
+package es.predictia.smartmap.ws;
 
 import java.io.IOException;
 import java.util.Collection;
@@ -17,20 +17,21 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import es.predictia.smartmap.model.DataType;
 import es.predictia.smartmap.model.SimpleObservation;
+import es.predictia.smartmap.service.DataService;
 import lombok.extern.slf4j.Slf4j;
 
 /**
  * Echo messages by implementing a Spring {@link WebSocketHandler} abstraction.
  */
 @Slf4j
-public class DataWebSocketHandler extends TextWebSocketHandler {
+public class DataWsHandler extends TextWebSocketHandler {
 
 	private final DataService dataService;
 	private final ObjectMapper converter = new ObjectMapper();
 	private Timer timer;
 
 	@Autowired
-	public DataWebSocketHandler(DataService dataService) {
+	public DataWsHandler(DataService dataService) {
 		this.dataService = dataService;
 	}
 

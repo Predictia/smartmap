@@ -14,20 +14,13 @@
  * limitations under the License.
  */
 
-package es.predictia.smartmap.config;
+package es.predictia.smartmap;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.socket.config.annotation.EnableWebSocket;
-import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
-import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
 
 import es.predictia.smartmap.service.DataService;
-import es.predictia.smartmap.service.DataWebSocketHandler;
 import es.predictia.smartmap.service.DefaultDataService;
 
 @SpringBootApplication
@@ -40,24 +33,6 @@ public class SmartMapApp {
 	@Bean
 	static DataService dataService() {
 		return new DefaultDataService();
-	}
-	
-	@EnableWebSocket
-	@Configuration	
-	@Controller
-	static class WebSocketConfig implements WebSocketConfigurer {
-
-		private final DataWebSocketHandler wsHandler;
-		
-		public WebSocketConfig(@Autowired DataService dataService) {
-			this.wsHandler = new DataWebSocketHandler(dataService);
-		}
-		
-		@Override
-		public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-			registry.addHandler(wsHandler, "/lastdata").withSockJS();
-		}
-
 	}	
 
 }
