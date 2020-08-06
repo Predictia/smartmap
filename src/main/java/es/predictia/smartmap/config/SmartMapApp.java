@@ -16,13 +16,12 @@
 
 package es.predictia.smartmap.config;
 
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.SpringApplication;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.builder.SpringApplicationBuilder;
-import org.springframework.boot.context.web.SpringBootServletInitializer;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.web.socket.WebSocketHandler;
+import org.springframework.stereotype.Controller;
 import org.springframework.web.socket.config.annotation.EnableWebSocket;
 import org.springframework.web.socket.config.annotation.WebSocketConfigurer;
 import org.springframework.web.socket.config.annotation.WebSocketHandlerRegistry;
@@ -31,35 +30,34 @@ import es.predictia.smartmap.service.DataService;
 import es.predictia.smartmap.service.DataWebSocketHandler;
 import es.predictia.smartmap.service.DefaultDataService;
 
-@Configuration
-@EnableAutoConfiguration
-@EnableWebSocket
-public class SampleWebSocketsApplication extends SpringBootServletInitializer implements
-		WebSocketConfigurer {
-
-	@Override
-	public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
-		registry.addHandler(dataWebSocketHandler(), "/lastdata").withSockJS();
-	}
-
-	@Override
-	protected SpringApplicationBuilder configure(SpringApplicationBuilder application) {
-		return application.sources(SampleWebSocketsApplication.class);
-	}
+@SpringBootApplication
+public class SmartMapApp {
 
 	public static void main(String[] args) {
-		SpringApplication.run(SampleWebSocketsApplication.class, args);
+		SpringApplication.run(SmartMapApp.class, args);
 	}
 
 	@Bean
-	public DataService dataService() {
+	static DataService dataService() {
 		return new DefaultDataService();
 	}
+	
+	@EnableWebSocket
+	@Configuration	
+	@Controller
+	static class WebSocketConfig implements WebSocketConfigurer {
 
-	@Bean
-	public WebSocketHandler dataWebSocketHandler() {
-		return new DataWebSocketHandler(dataService());
-	}
+		private final DataWebSocketHandler wsHandler;
+		
+		public WebSocketConfig(@Autowired DataService dataService) {
+			this.wsHandler = new DataWebSocketHandler(dataService);
+		}
+		
+		@Override
+		public void registerWebSocketHandlers(WebSocketHandlerRegistry registry) {
+			registry.addHandler(wsHandler, "/lastdata").withSockJS();
+		}
 
+	}	
 
 }

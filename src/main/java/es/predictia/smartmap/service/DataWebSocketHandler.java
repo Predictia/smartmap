@@ -5,8 +5,6 @@ import java.util.Collection;
 import java.util.Timer;
 import java.util.TimerTask;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.socket.CloseStatus;
 import org.springframework.web.socket.TextMessage;
@@ -19,13 +17,13 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 
 import es.predictia.smartmap.model.DataType;
 import es.predictia.smartmap.model.SimpleObservation;
+import lombok.extern.slf4j.Slf4j;
 
 /**
  * Echo messages by implementing a Spring {@link WebSocketHandler} abstraction.
  */
+@Slf4j
 public class DataWebSocketHandler extends TextWebSocketHandler {
-
-	private static Logger logger = LoggerFactory.getLogger(DataWebSocketHandler.class);
 
 	private final DataService dataService;
 	private final ObjectMapper converter = new ObjectMapper();
@@ -38,7 +36,7 @@ public class DataWebSocketHandler extends TextWebSocketHandler {
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) {
-		logger.debug("Opened new session in instance " + this);
+		log.debug("Opened new session in instance " + this);
 	}
 
 	@Override
@@ -74,12 +72,12 @@ public class DataWebSocketHandler extends TextWebSocketHandler {
 					try {
 						session.sendMessage(new TextMessage(converter.writeValueAsString(data)));
 					} catch (JsonProcessingException e) {
-						logger.debug("problem generating JSON");
+						log.debug("problem generating JSON");
 					} catch (IOException e) {
-						logger.debug("problem sending data");
+						log.debug("problem sending data");
 					}
 				}else{
-					logger.debug("session is closed");
+					log.debug("session is closed");
 					if(timer != null){
 						timer.cancel();
 					}
