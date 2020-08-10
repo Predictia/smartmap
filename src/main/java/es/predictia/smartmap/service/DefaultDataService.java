@@ -1,10 +1,8 @@
 package es.predictia.smartmap.service;
 
-import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.List;
@@ -14,14 +12,12 @@ import java.util.concurrent.TimeUnit;
 
 import es.predictia.smartmap.model.DataType;
 import es.predictia.smartmap.model.SimpleObservation;
-import es.predictia.smartsantander.model.EnviromentValue;
-import es.predictia.smartsantander.model.MobileValue;
 import es.predictia.smartsantander.service.SENS2SOCService;
 import es.predictia.smartsantander.service.SENS2SOCServiceImpl;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-public class DefaultDataService implements DataService, Runnable {
+public class DefaultDataService implements DataService {
 
 	private final SENS2SOCService service = new SENS2SOCServiceImpl();
 	private final Map<DataType,List<SimpleObservation>> lastData = new HashMap<>();
@@ -29,10 +25,16 @@ public class DefaultDataService implements DataService, Runnable {
 	private final static Integer DATA_AGE = 600;
 	
 	public DefaultDataService(){
-		Executors.newSingleThreadScheduledExecutor()
-			.scheduleAtFixedRate(this, 0, REFRESH_PERIOD, TimeUnit.SECONDS);
 		EnumSet.allOf(DataType.class)
 			.forEach(t -> lastData.put(t, new ArrayList<SimpleObservation>()));
+		Executors.newSingleThreadScheduledExecutor()
+			.scheduleAtFixedRate(() -> {
+				try {
+					update();
+				} catch (Throwable e) {
+					log.warn("Problem updating data", e);
+				}
+			}, 0, REFRESH_PERIOD, TimeUnit.SECONDS);		
 	}
 
 	@Override
@@ -40,17 +42,10 @@ public class DefaultDataService implements DataService, Runnable {
 		return lastData.get(type);
 	}
 	
-	@Override
-	public void run() {
-		List<EnviromentValue> dataFixed = Collections.emptyList();
-		List<MobileValue> dataMobile = Collections.emptyList();
-		try {
-			dataFixed = service.getLastEnviromentValues();
-			dataMobile = service.getLastMobileValues();
-			log.debug("Found {} enviroment values and {} mobile values", dataFixed.size(), dataMobile.size());
-		} catch (IOException e) {
-			log.warn("error getting data", e);
-		}
+	private synchronized void update() throws Throwable {
+		var dataFixed = service.getLastEnviromentValues();
+		var dataMobile = service.getLastMobileValues();
+		log.debug("Found {} enviroment values and {} mobile values", dataFixed.size(), dataMobile.size());
 		EnumSet.allOf(DataType.class)
 			.forEach(t -> lastData.get(t).clear());
 		for(var datum : dataFixed) {
