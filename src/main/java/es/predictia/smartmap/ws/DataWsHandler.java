@@ -1,9 +1,10 @@
 package es.predictia.smartmap.ws;
 
-import java.io.IOException;
-import java.util.Collection;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Timer;
 import java.util.TimerTask;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.socket.CloseStatus;
@@ -12,12 +13,11 @@ import org.springframework.web.socket.WebSocketHandler;
 import org.springframework.web.socket.WebSocketSession;
 import org.springframework.web.socket.handler.TextWebSocketHandler;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
 import es.predictia.smartmap.model.DataType;
-import es.predictia.smartmap.model.SimpleObservation;
 import es.predictia.smartmap.service.DataService;
+
 import lombok.extern.slf4j.Slf4j;
 
 /**
@@ -28,7 +28,7 @@ public class DataWsHandler extends TextWebSocketHandler {
 
 	private final DataService dataService;
 	private final ObjectMapper converter = new ObjectMapper();
-	private Timer timer;
+	private final Map<String, Timer> timers = new ConcurrentHashMap<>();
 
 	@Autowired
 	public DataWsHandler(DataService dataService) {
@@ -37,53 +37,47 @@ public class DataWsHandler extends TextWebSocketHandler {
 
 	@Override
 	public void afterConnectionEstablished(WebSocketSession session) {
-		log.debug("Opened new session in instance " + this);
+		log.debug("Opened new session {}", session.getId());
 	}
 
 	@Override
-	public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {		
-		
-		DataType type = DataType.valueOf(message.getPayload());
-		
-		if(timer != null){
-			timer.cancel();
-			timer = new Timer();
-		}else{
-			timer = new Timer(); 
-		}
-		
-		TimerTask future = getDataTask(session,type);
-		timer.scheduleAtFixedRate(future, 0, 1000);
-	}
-
-	@Override
-	public void handleTransportError(WebSocketSession session, Throwable exception) throws Exception {
-		if(timer != null){
-			timer.cancel();
-		}
-		session.close(CloseStatus.SERVER_ERROR);
-	}
-
-	private TimerTask getDataTask(final WebSocketSession session,final DataType type){
-		return new TimerTask() {
-			@Override
-			public void run() {
-				Collection<SimpleObservation> data = dataService.getLastData(type);
-				if(session.isOpen()){
-					try {
-						session.sendMessage(new TextMessage(converter.writeValueAsString(data)));
-					} catch (JsonProcessingException e) {
-						log.debug("problem generating JSON");
-					} catch (IOException e) {
-						log.debug("problem sending data");
-					}
-				}else{
-					log.debug("session is closed");
-					if(timer != null){
-						timer.cancel();
-					}
+	public void handleTextMessage(WebSocketSession session, TextMessage message) throws Exception {
+		Optional.ofNullable(timers.get(session.getId()))
+			.ifPresent(Timer::cancel);
+		var type = DataType.valueOf(message.getPayload());
+		var iTimer = new Timer(); 
+		iTimer.scheduleAtFixedRate(task(() -> {
+			var data = dataService.getLastData(type);
+			if(session.isOpen()){
+				try {
+					session.sendMessage(new TextMessage(converter.writeValueAsString(data)));
+				} catch (Throwable e) {
+					log.debug("problem sending data", e);
 				}
+			}else{
+				log.debug("session {} is closed", session.getId());
+				Optional.ofNullable(timers.remove(session.getId()))
+					.ifPresent(Timer::cancel);
+			}
+		}), 0, 1000);
+		timers.put(session.getId(), iTimer);
+	}
+
+	private static TimerTask task(Runnable r) {
+		return new TimerTask() {
+			@Override 
+			public void run() {
+				r.run();
 			}
 		};
 	}
+	
+	@Override
+	public void handleTransportError(WebSocketSession session, Throwable e) throws Exception {
+		log.debug("session {} had transport error: {}", session.getId(), e.getMessage());
+		Optional.ofNullable(timers.remove(session.getId()))
+			.ifPresent(Timer::cancel);
+		session.close(CloseStatus.SERVER_ERROR);
+	}
+
 }
