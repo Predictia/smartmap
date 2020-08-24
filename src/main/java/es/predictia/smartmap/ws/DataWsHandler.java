@@ -45,31 +45,29 @@ public class DataWsHandler extends TextWebSocketHandler {
 		Optional.ofNullable(timers.get(session.getId()))
 			.ifPresent(Timer::cancel);
 		var type = DataType.valueOf(message.getPayload());
-		var iTimer = new Timer(); 
-		iTimer.scheduleAtFixedRate(task(() -> {
-			var data = dataService.getLastData(type);
-			if(session.isOpen()){
-				try {
-					session.sendMessage(new TextMessage(converter.writeValueAsString(data)));
-				} catch (Throwable e) {
-					log.debug("problem sending data", e);
-				}
-			}else{
-				log.debug("session {} is closed", session.getId());
-				Optional.ofNullable(timers.remove(session.getId()))
-					.ifPresent(Timer::cancel);
-			}
-		}), 0, 1000);
-		timers.put(session.getId(), iTimer);
+		timers.put(session.getId(), createSendMessageTimer(session, type));
 	}
 
-	private static TimerTask task(Runnable r) {
-		return new TimerTask() {
+	private Timer createSendMessageTimer(WebSocketSession session, DataType type) {
+		var timer = new Timer(); 
+		timer.scheduleAtFixedRate(new TimerTask() {
 			@Override 
 			public void run() {
-				r.run();
+				var data = dataService.getLastData(type);
+				if(session.isOpen()){
+					try {
+						session.sendMessage(new TextMessage(converter.writeValueAsString(data)));
+					} catch (Throwable e) {
+						log.debug("problem sending data", e);
+					}
+				}else{
+					log.debug("session {} is closed", session.getId());
+					Optional.ofNullable(timers.remove(session.getId()))
+						.ifPresent(Timer::cancel);
+				}
 			}
-		};
+		}, 0, 1000);
+		return timer;
 	}
 	
 	@Override
