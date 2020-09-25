@@ -15,9 +15,8 @@ import org.springframework.web.socket.handler.TextWebSocketHandler;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 
-import es.predictia.smartmap.model.DataType;
-import es.predictia.smartmap.service.DataService;
-
+import es.predictia.smartmap.data.DataService;
+import es.predictia.smartmap.data.DataType;
 import lombok.extern.slf4j.Slf4j;
 
 /**

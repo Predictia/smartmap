@@ -16,12 +16,14 @@
 
 package es.predictia.smartmap;
 
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.context.annotation.Bean;
 
-import es.predictia.smartmap.service.DataService;
-import es.predictia.smartmap.service.DefaultDataService;
+import es.predictia.smartmap.data.DataService;
+import es.predictia.smartmap.data.DefaultDataService;
+import es.predictia.smartmap.data.SantanderOpenDataClient;
 
 @SpringBootApplication
 public class SmartMapApp {
@@ -31,8 +33,20 @@ public class SmartMapApp {
 	}
 
 	@Bean
-	static DataService dataService() {
-		return new DefaultDataService();
-	}	
+	static DataService dataService(
+			SantanderOpenDataClient client,
+			@Value("${data.refresh-rate}") Integer refreshPeriodInSeconds
+		) {
+		return new DefaultDataService(client, refreshPeriodInSeconds);
+	}
+	
+	@Bean
+	static SantanderOpenDataClient santanderOpenDataClient(
+			@Value("${santander-od.envMonitoring}") String envMonitoringUrl, 
+			@Value("${santander-od.mobile}") String mobileUrl,
+			@Value("${data.age-limit}") Integer ageLimitInSeconds
+	) {
+		return new SantanderOpenDataClient(envMonitoringUrl, mobileUrl, ageLimitInSeconds);
+	}
 
 }

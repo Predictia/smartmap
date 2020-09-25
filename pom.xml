@@ -37,11 +37,6 @@
 			</exclusions>
 		</dependency>
 		<dependency>
-			<groupId>es.predictia</groupId>
-			<artifactId>smartsantander</artifactId>
-			<version>0.0.2</version>
-		</dependency>
-		<dependency>
 			<groupId>org.projectlombok</groupId>
 			<artifactId>lombok</artifactId>
 			<scope>provided</scope>

@@ -1,0 +1,7 @@
+data:
+  age-limit: 600 # max age (in seconds) or provided data
+  refresh-rate: 10 # update interval in seconds 
+santander-od:
+  base: http://datos.santander.es/api/rest/datasets
+  envMonitoring: ${santander-od.base}/sensores_smart_env_monitoring.json
+  mobile: ${santander-od.base}/sensores_smart_mobile.json
